@@ -26,4 +26,4 @@ def orderByRarity():
     #dump these into a text file to reduce repeat computation
     with open('mostCommonWords.txt', 'w') as f:
         for word in mostCommonWords:
-            f.write(f"{word}\n")
+            f.write(f"{word.upper()}\n")

@@ -17,9 +17,8 @@ if os.path.exists("./mostCommonWords.txt") and (os.path.getsize("./mostCommonWor
 else:
     orderByRarity()
     
-#add high bias words to top
 
-
+#TODO add high bias words to top
 wordlestring = "GBBGBGYBGBGGGGG"
 score = 3
 solution = "THORN"
@@ -27,45 +26,136 @@ wordle = []
 for x in range(score):
   wordle.append(wordlestring[(5*x):(5*x+5)])
 
-
 reversesolution = ""
 
-for x in range(score):
-    with open("valid-wordle-words.txt", "r") as validwordstext:
-        validwords = validwordstext.read().splitlines()
-    line = wordle[x]
-    print(line)
-    wordfound = False
-    trueword = ""
 
-    if x == (score-1):
-        reversesolution += solution
+def yellowSquareElligible(gridRow, answer, letter):
+    #Weird code for a weird problem
+    #Wordle does not give you a yellow letter if you already have that letter highlighted green\
+    #The exception is duplicate letters: if you already green-squared all of a letter, new attempts
+    #at adding that letter will be blank
+    exemptYellows = 0 
+    for j in range(5):
+        if (letter == answer[j]) and (gridRow[j] == "G"):
+            exemptYellows += 1
+            #print(f"Found {exemptYellows} green {letter}'s in {answer}")
+            #print(answer.count(letter))
+    if exemptYellows >= answer.count(letter):
+        #Not confident about this but my head hurts so I'd like to see some examples first
+        return False
     else:
-        for word in validwords:
-            print("word: "+word)
-            if wordfound == True:
-                break
-            for letter in range(5):
-                print("letter: "+str(letter) + "")
-                if line[letter] == "G" and solution[letter] != word[letter]:
-                    break
-                if line[letter] == "Y" and (word[letter] not in solution):
-                    #Too broad: also needs to check to make sure it isn't a repeat
-                    #ie the word "stent" guessing for the word "trump" should only return
-                    #one yellow [OR zero yellows dependent on green accurate guesses] 
-                    # (check wordle rules for number of yellows on multi-letter guesses
-                    # with no greens)
-                    break
-                if wordlestring[letter] == "B" and word[letter] in solution:
-                    break
+        return True
+        
 
-                #If you made it to the end of this on the 5th letter, you found working answer
-                if letter == 4:
-                    wordfound = True
-                    trueword = word
-    print(trueword)
-    reversesolution += trueword
-    print(reversesolution)
+
+
+
+def checkLine(gridRow, answer, word):
+    for i in range(5):
+        #print(f"Checking {word[i]} against {answer[i]} for a {gridRow[i]} square")
+        match gridRow[i]:
+            case "G":
+                if word[i] != answer[i]:
+                    return False
+            case "Y":
+                if (word[i] not in answer) or (word[i] == answer[i]):
+                    return False
+                #print(f"Testing yellow eligibility of {word[i]} at position {i} in the word {answer}")
+                if yellowSquareElligible(gridRow, answer, word[i]) == False:
+                    return False
+
+            case "B":
+                if word[i] == answer[i]:
+                    return False
+
+
+
+                    return False
+                #Just check if it can be a yellow or a green. If not it's a blank, right?
+    else:
+        return True
+
+# #Test cases
+# print(checkLine("GGGGG","GRUNK","GRUNK")) #True
+# print(checkLine("GGGGG","GRUNK","GRUNG")) #False
+
+# print(checkLine("YYYYY","PAERT","APTER")) #True
+# print(checkLine("YYGYY","AABCC","CCBAA")) #True 
+
+print(checkLine("GGGGY","GRUNK","GRUNG")) #False
+print(checkLine("BBBBB","PRATE","APTER")) #False
+# print(checkLine("BBBBB","PRATE","QWYUI")) #True
+
+# print(checkLine("GGBBB","EETTF","EEETQ")) #True
+
+
+print
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Garbage code, starting over
+# for x in range(score):
+#     with open("valid-wordle-words.txt", "r") as validwordstext:
+#         validwords = validwordstext.read().splitlines()
+#     line = wordle[x]
+#     print(line)
+#     wordfound = False
+#     trueword = ""
+
+#     if x == (score-1):
+#         reversesolution += solution
+#     else:
+#         for word in validwords:
+#             print("word: "+word)
+#             if wordfound == True:
+#                 break
+#             for letter in range(5):
+#                 print("letter: "+str(letter) + "")
+#                 if line[letter] == "G" and solution[letter] != word[letter]:
+#                     break
+#                 if line[letter] == "Y" and (word[letter] not in solution):
+#                    
+#                     break
+#                 if wordlestring[letter] == "B" and word[letter] in solution:
+#                     break
+
+#                 #If you made it to the end of this on the 5th letter, you found working answer
+#                 if letter == 4:
+#                     wordfound = True
+#                     trueword = word
+#     print(trueword)
+#     reversesolution += trueword
+#     print(reversesolution)
                 
 
                 
