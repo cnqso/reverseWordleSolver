@@ -1,26 +1,56 @@
 /** @format */
 
+
 export default function reverseSolver(wordleString, answer, validWords) {
 	// input: string of rights and wrongs, answer, validWords
-	// Split wordleString into array of 5-letter sequences
+	// Output 1. The 2D solution array 2. The index of the "optimal" solutions
+
 	const wordleArray = wordleString.match(/.{1,5}/g);
-	console.log(wordleArray);
-	const allPaths = bruteForceAllPaths(wordleArray, answer, validWords);
-	console.log(allPaths);
+	const [allPaths, checks, foundMatches] = bruteForceAllPaths(wordleArray, answer, validWords);
 	let possiblePaths = allPaths[0].length;
 	for (let i = 1; i < allPaths.length; i++) {
 		possiblePaths = possiblePaths * allPaths[i].length;
 	}
-	console.log(`There are ${possiblePaths} possible permuations`);
 	const standards = {
 		yellowNeglect: false,
 		yellowRepeats: false,
-		blankRepeats: true,
+		blankRepeats: false,
 		allowRepeats: false,
 	};
-	const solution = depthWordleSearch("", allPaths, wordleArray, 0, [], {}, standards);
-	console.log(solution);
-	return solution;
+
+	let standardsMet = 4;
+	let solution = depthWordleSearch("", allPaths, wordleArray, standards);
+	if (solution === false) {
+		standards.yellowNeglect = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		standards.yellowRepeats = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		standards.blankRepeats = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		standards.allowRepeats = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		console.log("No solution found");
+		standardsMet--;
+	}
+	// try with different standards bla bla bla
+	const solutionIndexes = [];
+	for (let i = 0; i < solution.length; i++) {
+		solutionIndexes.push(allPaths[i].indexOf(solution[i]));
+	}
+	solutionIndexes.push(0)
+	return [allPaths, solutionIndexes, possiblePaths, checks, foundMatches, standardsMet];
 }
 
 function bruteForceAllPaths(wordleArray, answer, validWords) {
@@ -29,7 +59,7 @@ function bruteForceAllPaths(wordleArray, answer, validWords) {
 	let checks = 0;
 	let foundMatches = 0;
 	const allPaths = [];
-	for (let i = 0; i < wordleArray.length; i++) {
+	for (let i = 0; i < wordleArray.length-1; i++) {
 		const matches = [];
 		const sequence = wordleArray[i];
 
@@ -45,8 +75,10 @@ function bruteForceAllPaths(wordleArray, answer, validWords) {
 		}
 		allPaths.push(matches);
 	}
+	allPaths.push([answer])
+	console.log(`Checked ${checks} words, found ${foundMatches} matches`);
 
-	return allPaths;
+	return [allPaths, checks, foundMatches];
 }
 
 function wordMatchesSequence(word, sequence, answer) {
@@ -77,17 +109,14 @@ function depthWordleSearch(
 	currentWord,
 	wordNodes,
 	wordleArray,
-	currentRow,
-	blankLetters,
-	yellowLetters,
 	standards,
+	currentRow = 0,
+	blankLetters = [],
+	yellowLetters = {},
 	selectedWords = []
 ) {
 	for (let i = 0; i < wordNodes[currentRow].length; i++) {
 		let nextWord = wordNodes[currentRow][i];
-        if (nextWord === "SOARE" || currentWord === "SOARE") {
-            console.log("SOARE");
-        }
 
 		if (naturallyFollows(currentWord, nextWord, blankLetters, yellowLetters, standards)) {
 			let newBlankLetters = [...blankLetters]; // Copy the blankLetters array
@@ -114,10 +143,10 @@ function depthWordleSearch(
 					nextWord,
 					wordNodes,
 					wordleArray,
+					standards,
 					currentRow + 1,
 					newBlankLetters,
 					newYellowLetters,
-					standards,
 					newSelectedWords
 				);
 				if (result) {
@@ -126,6 +155,7 @@ function depthWordleSearch(
 			}
 		}
 	}
+	// console.log("No solution found at" + currentWord + " " + currentRow + selectedWords + blankLetters + yellowLetters)
 	return false;
 }
 

@@ -1,0 +1,133 @@
+/** @format */
+
+body {
+	background-color: #121213;
+	color: #fff;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	margin: 0;
+	font-family: "Roboto", sans-serif;
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+#grid-container {
+	display: grid;
+	gap: 7px;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+#wordle-input {
+    width: 155px;
+	font-size: 1.5em;
+	height: 200px;
+}
+
+button {
+	background-color: #121213;
+	color: #fff;
+	border: 1px solid #fff;
+	border-radius: 5px;
+	padding: 5px;
+	font-size: 1.2em;
+	font-weight: 700;
+	cursor: pointer;
+	margin-left: auto;
+    width: 161px;
+}
+.square {
+	width: 65px;
+	height: 65px;
+	margin-right: 7px;
+	font-size: 2em;
+	font-weight: 800;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #121213;
+	border: 1px solid #999;
+}
+
+.arrow {
+	cursor: pointer;
+	margin-right: 7px;
+	font-size: 2em;
+	font-weight: 700;
+	margin-top: auto;
+	margin-bottom: auto;
+}
+
+.resultsScreen {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+	align-items: center;
+	width: 100%;
+}
+.indexLabel {
+	justify-self: center;
+	align-self: center;
+	margin-left: 2px;
+}
+.flip-animation {
+	animation: flip 0.3s;
+	transform-style: preserve-3d;
+}
+
+.svg-link {
+    text-decoration: none;
+}
+
+footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+    width: 90px;
+}
+
+@keyframes flip {
+	0% {
+		transform: perspective(400px) rotateX(0);
+	}
+	50% {
+		transform: perspective(400px) rotateX(180deg);
+	}
+	100% {
+		transform: perspective(400px) rotateX(360deg);
+	}
+}
+
+@media screen and (max-width: 800px) {
+	body {
+		max-width: 330px;
+	}
+
+	.resultsScreen {
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+	}
+}
+
+@media screen and (max-width: 475px) {
+	.square {
+		width: 35px;
+		height: 35px;
+		margin-right: 3px;
+		font-size: 1.2em;
+	}
+	#grid-container {
+		display: grid;
+		gap: 3px;
+	}
+}
