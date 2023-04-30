@@ -16,6 +16,7 @@ body {
 
 #grid-container {
 	display: grid;
+	position: relative;
 	gap: 7px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
@@ -31,18 +32,34 @@ body {
 	height: 200px;
 }
 
-button {
-	background-color: #121213;
+.submit {
+	background-color: #1b1b1c;
 	color: #fff;
 	border: 1px solid #fff;
 	border-radius: 5px;
-	padding: 5px;
+	padding: 7px;
 	font-size: 1.2em;
 	font-weight: 700;
 	cursor: pointer;
 	margin-left: auto;
     width: 161px;
+	margin-bottom: 30px;
 }
+
+.submit:hover {
+	background-color: #1b1b1b;
+	border-color: rgb(248, 220, 255);
+}
+
+.extraInfo {
+	background-color: #1b1b1c;
+	color: #fff;
+	border: 1px solid #fff;
+	border-radius: 5px;
+	margin-bottom: 20px;
+	cursor: pointer;
+}
+
 .square {
 	width: 65px;
 	height: 65px;
@@ -69,10 +86,11 @@ button {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-around;
-	align-items: center;
 	width: 100%;
 }
 .indexLabel {
+	/* Position so that it does not impact the centering of the row */
+	width: 0px;
 	justify-self: center;
 	align-self: center;
 	margin-left: 2px;
@@ -95,6 +113,20 @@ footer {
     width: 90px;
 }
 
+.resultsTitle {
+	font-size: 1.2em;
+	margin-top: 5px;
+	font-weight: bold;
+	margin-bottom: 0px;
+}
+.resultsDate {
+	margin-bottom: 10px;
+}
+
+
+
+
+
 @keyframes flip {
 	0% {
 		transform: perspective(400px) rotateX(0);
@@ -107,9 +139,39 @@ footer {
 	}
 }
 
+@keyframes flipOut {
+	0% {
+		transform: perspective(400px) rotateX(0);
+	}
+	100% {
+		transform: perspective(400px) rotateX(90deg);
+	}
+}
+
+@keyframes flipIn {
+	0% {
+		transform: perspective(400px) rotateX(270deg);
+	}
+	100% {
+		transform: perspective(400px) rotateX(360deg);
+	}
+}
+
+.flip-in-animation {
+	animation: flipIn 0.1s;
+	transform-style: preserve-3d;
+}
+
+.flip-out-animation {
+	animation: flipOut 0.1s;
+	transform-style: preserve-3d;
+}
+
+
+
 @media screen and (max-width: 800px) {
 	body {
-		max-width: 330px;
+		max-width: 100%;
 	}
 
 	.resultsScreen {
@@ -119,7 +181,7 @@ footer {
 	}
 }
 
-@media screen and (max-width: 475px) {
+@media screen and (max-width: 530px) {
 	.square {
 		width: 35px;
 		height: 35px;
