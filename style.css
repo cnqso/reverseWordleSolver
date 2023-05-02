@@ -14,9 +14,17 @@ body {
 	margin: 0 auto;
 }
 
+#wordle-form {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	max-width: 400px;
+}
+
 #grid-container {
 	display: grid;
-	position: relative;
+	grid-auto-flow: row;
 	gap: 7px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
@@ -24,6 +32,30 @@ body {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+}
+
+
+
+#formInputs {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: flex-start;
+}
+
+#extraOptionsButton {
+	background-color: #1b1b1c;
+	color: #fff;
+	border: 1px solid #fff;
+	border-radius: 5px;
+	cursor: pointer;
+	float: left;
+}
+
+#extraFields {
+	display: none;
+	flex:0 0 0;
+	
 }
 
 #wordle-input {
@@ -41,9 +73,16 @@ body {
 	font-size: 1.2em;
 	font-weight: 700;
 	cursor: pointer;
-	margin-left: auto;
+	margin: 0 auto;
     width: 161px;
+	
 	margin-bottom: 30px;
+
+}
+
+.row {
+	display: flex;
+	max-height: 65px;
 }
 
 .submit:hover {
@@ -82,7 +121,7 @@ body {
 	margin-bottom: auto;
 }
 
-.resultsScreen {
+#resultsScreen {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-around;
@@ -174,7 +213,7 @@ footer {
 		max-width: 100%;
 	}
 
-	.resultsScreen {
+	#resultsScreen {
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;

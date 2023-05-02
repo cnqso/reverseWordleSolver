@@ -1,43 +1,56 @@
 /** @format */
 
-// import fetchData from "./data-fetcher.js"
+
+import fetchData from "./data-fetcher.js";
 import reverseSolver from "./reverse-solver.js";
 let globalJsonData = { answers: {}, words: [] };
 
 //FOR TESTING
-fetch("data.json")
-	.then((response) => response.json())
-	.then((data) => {
-		globalJsonData = data;
-	});
+// fetch("data.json")
+// 	.then((response) => response.json())
+// 	.then((data) => {
+// 		globalJsonData = data;
+// 	});
 //
-// globalJsonData = await fetchData();
-// console.log(globalJsonData)
+globalJsonData = await fetchData();
 
 const textField = document.getElementById("wordle-input");
-textField.addEventListener("focus", function() {
-  if (true) {
-    textField.textContent = "";
-  }
+textField.addEventListener("focus", function () {
+	if (true) {
+		textField.textContent = "";
+	}
 });
 
+function extraOptions() {
+	const extraFields = document.getElementById("extraFields");
+	extraFields.style.display = extraFields.style.display === "block" ? "none" : "block";
+}
 
 const form = document.getElementById("wordle-form");
 if (form) {
 	form.addEventListener("submit", function (event) {
 		event.preventDefault();
-		if (!globalJsonData) {
-			return;
-		}
 		const input = document.getElementById("wordle-input").value;
-		const output = parseWordle(input);
-		const outputDOM = parsedWordleToDOM(output);
+		const startingWords = document.getElementById("startingWords")
+			? document.getElementById("startingWords").value
+			: "";
+		const customAnswer = document.getElementById("customAnswer")
+			? document.getElementById("customAnswer").value
+			: "";
+		const results = document.getElementById("output");
+		while (results.firstChild) {
+			results.removeChild(results.firstChild);
+		}
+		if (globalJsonData && globalJsonData.words) {
+			const output = parseWordle(input, startingWords, customAnswer);
 
-    const results = document.getElementById("output")
-    while (results.firstChild) {
-      results.removeChild(results.firstChild);
-    }
-		results.appendChild(outputDOM);
+			if (output) {
+				const outputDOM = parsedWordleToDOM(output);
+				results.appendChild(outputDOM);
+			}
+		} else {
+			alert("Couldn't find the list of legal words. If you're seeing this, it means I failed.");
+		}
 	});
 }
 
@@ -65,36 +78,34 @@ function parsedWordleToDOM(wordleObject) {
 	const permutations = document.createElement("div");
 	permutations.textContent = `Permutations: ${wordleObject.permutations.toLocaleString()}`;
 
-  const extraInfo = document.createElement("pre");
-  extraInfo.innerText = JSON.stringify(wordleObject, null, 2);
-  extraInfo.style.display = "none";
-
-
+	const extraInfo = document.createElement("pre");
+	extraInfo.innerText = JSON.stringify(wordleObject, null, 2);
+	extraInfo.style.display = "none";
 
 	const button = document.createElement("button");
 	button.textContent = "+";
-  button.className = "extraInfo";
+	button.className = "extraInfo";
 	button.addEventListener("click", () => {
 		// Toggle the visibility of the JSON elements
 		extraInfo.style.display = extraInfo.style.display === "none" ? "block" : "none";
-    button.textContent = button.textContent === "+" ? "–" : "+";
+		button.textContent = button.textContent === "+" ? "–" : "+";
 	});
 
 	header.appendChild(title);
 	header.appendChild(date);
 	header.appendChild(answer);
-  
+
 	header.appendChild(matches);
 	header.appendChild(permutations);
-  header.appendChild(button); // Add the button here
-  header.appendChild(extraInfo); // Add the extra info here
+	header.appendChild(button); // Add the button here
+	header.appendChild(extraInfo); // Add the extra info here
 
 	container.appendChild(header);
 
 	return container;
 }
 
-function parseWordle(input) {
+function parseWordle(input, startingWords, customAnswer) {
 	const lines = input.trim().split("\n");
 	const header = lines[0].split(" ");
 	const wordleNumber = parseInt(header[1]);
@@ -103,6 +114,15 @@ function parseWordle(input) {
 
 	const grid = lines.slice(1);
 	const linear = grid.join("").replace(/[\n\s]/g, "");
+
+	const firstDate = new Date(2021, 5, 19);
+	const rawDate = new Date(firstDate.setDate(firstDate.getDate() + wordleNumber));
+	const today = new Date();
+	if (rawDate > today) {
+		alert("That's a future wordle!");
+		return false;
+	}
+	const date = rawDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
 	let plainText = "";
 
@@ -120,24 +140,47 @@ function parseWordle(input) {
 	}
 
 	let answer = "";
-
-	if (globalJsonData.answers) {
+	if (customAnswer) {
+		answer = customAnswer.toUpperCase();
+	} else if (globalJsonData && globalJsonData.answers) {
 		if (globalJsonData.answers[wordleNumber]) {
 			answer = globalJsonData.answers[wordleNumber];
 		} else {
-			answer = "";
+			alert("We weren't able to get this wordle. The database may be late to update.");
+			return false;
 		}
+	} else {
+		alert("We weren't able to get the updated answers list. Try again or enter a custom answer.");
+		return false;
 	}
 
-	const firstDate = new Date(2021, 5, 19);
-	const rawDate = new Date(firstDate.setDate(firstDate.getDate() + wordleNumber));
-	const date = rawDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+	if (startingWords) {
+		//split words by spaces, newlines, or commas. All words must be 5 letters long
+		const words = startingWords.split(/[\s,]+/).filter((word) => word.length === 5);
+		for (let i = words.length - 1; i >= 0; i--) {
+			console.log(words[i].toUpperCase());
+			globalJsonData.words.unshift(words[i].toUpperCase());
+		}
+	}
 
 	const [solutions, indexes, permutations, checks, matches, standardsMet] = reverseSolver(
 		plainText,
 		answer,
 		globalJsonData.words
 	);
+
+	if (standardsMet === -1) {
+		const noAnswer = document.createElement("div");
+		noAnswer.textContent = "No answer found!";
+		noAnswer.style.margin = "0 auto";
+		document.getElementById("resultsScreen").style.justifyContent = "center";
+		const output = document.getElementById("output");
+		output.appendChild(noAnswer);
+		output.style.textAlign = "center";
+		return false;
+	} else {
+		document.getElementById("resultsScreen").style.justifyContent = "space-around";
+	}
 
 	createGrid(solutions, indexes, plainText);
 
@@ -167,7 +210,8 @@ function generateRandomColor(color) {
 
 function createRow(solutions, startingIndex, colors, rowNumber) {
 	const row = document.createElement("div");
-	row.style.display = "flex";
+
+	row.classList.add("row");
 
 	const leftArrow = document.createElement("div");
 	leftArrow.className = "arrow";
@@ -198,7 +242,7 @@ function createRow(solutions, startingIndex, colors, rowNumber) {
 	return row;
 }
 
-/* Modify the changeRowContents function */
+
 function changeRowContents(row, rowNumber, direction, solutions) {
 	const squares = row.querySelectorAll(".square");
 	const indexLabel = row.querySelector(".indexLabel");
@@ -235,6 +279,7 @@ function createGrid(solutions, indexes, colorText) {
 	const numRows = Math.floor(colorText.length / 5);
 	const colorsArray = colorText.match(/.{1,5}/g);
 	const gridContainer = document.getElementById("grid-container");
+	gridContainer.style.maxHeight = `${numRows * 66}px`;
 	// Clear the existing grid
 	while (gridContainer.firstChild) {
 		gridContainer.removeChild(gridContainer.firstChild);

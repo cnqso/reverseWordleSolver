@@ -85,9 +85,10 @@ export default async function fetchData() {
 	if (answerData && wordList) {
 		const flattenedAnswerData = restructureData(answerData);
 		const result = {answers: flattenedAnswerData, words: wordList};
-        createDownloadLink(result);
+        // createDownloadLink(result);
         return result;
 	} else {
 		console.error("JSON data not found");
+		return false;
 	}
 }
