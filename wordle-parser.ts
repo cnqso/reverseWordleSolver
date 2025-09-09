@@ -1,19 +1,264 @@
 /** @format */
 
-import fetchData from "./data-fetcher.js";
-import reverseSolver from "./reverse-solver.js";
-let globalJsonData = { answers: {}, words: [] };
 
-//FOR TESTING
-// fetch("data.json")
-// 	.then((response) => response.json())
-// 	.then((data) => {
-// 		globalJsonData = data;
-// 	});
-//
+type Words = string[];
+type Answers = Record<number, string>;
+type GlobalJsonData = { answers: Answers, words: Words };
+let globalJsonData: GlobalJsonData = { answers: {}, words: [] };
+
+export {}
+
+async function fetchData(): Promise<GlobalJsonData> {
+
+	const answerData = await fetchAnswers();
+    const wordList = await fetchCommonWords();
+
+	if (answerData && wordList) {
+		const result = {answers: answerData, words: wordList};
+        // createDownloadLink(result);
+        return result;
+	} else {
+		console.error("JSON data not found");
+		return { answers: {}, words: [] };
+	}
+}
+
+async function fetchAnswers(): Promise<Answers> {
+	try {
+		const response = await fetch(
+			"https://raw.githubusercontent.com/cnqso/wordle-data/main/answers.json"
+		);
+		if (!response.ok) {
+			throw new Error(`HTTP error! Status: ${response.status}`);
+		}
+		const text = await response.text();
+		const json = JSON.parse(text);
+		return json;
+	} catch (error) {
+		console.error("Error fetching the text file:", error);
+    return {};
+	}
+}
+
+
+async function fetchCommonWords(): Promise<Words> {
+	try {
+		const response = await fetch(
+			"https://raw.githubusercontent.com/cnqso/wordle-data/main/word_frequency.json"
+		);
+		if (!response.ok) {
+			throw new Error(`HTTP error! Status: ${response.status}`);
+		}
+		const text = await response.text();
+		const json = JSON.parse(text);
+		return json;
+	} catch (error) {
+		console.error("Error fetching the text file:", error);
+		return [];
+	}
+}
+
+function reverseSolver(wordleString, answer, validWords) {
+	// input: string of rights and wrongs, answer, validWords
+	// Output 1. The 2D solution array 2. The index of the "optimal" solutions
+
+	const wordleArray = wordleString.match(/.{1,5}/g);
+	const [allPaths, checks, foundMatches] = bruteForceAllPaths(wordleArray, answer, validWords);
+	let possiblePaths = allPaths[0].length;
+	for (let i = 1; i < allPaths.length; i++) {
+		possiblePaths = possiblePaths * allPaths[i].length;
+	}
+	const standards = {
+		yellowNeglect: false,
+		yellowRepeats: false,
+		blankRepeats: false,
+		allowRepeats: false,
+	};
+
+	let standardsMet = 4;
+	let solution = depthWordleSearch("", allPaths, wordleArray, standards);
+	if (solution === false) {
+		standards.yellowNeglect = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		standards.yellowRepeats = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		standards.blankRepeats = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		standards.allowRepeats = true;
+		solution = depthWordleSearch("", allPaths, wordleArray, standards);
+		standardsMet--;
+	}
+	if (solution === false) {
+		console.log("No solution found");
+		standardsMet--;
+	}
+	// try with different standards bla bla bla
+	const solutionIndexes: number[] = [];
+	for (let i = 0; i < solution.length; i++) {
+		solutionIndexes.push(allPaths[i].indexOf(solution[i]));
+	}
+	solutionIndexes.push(0)
+	return [allPaths, solutionIndexes, possiblePaths, checks, foundMatches, standardsMet];
+}
+
+function bruteForceAllPaths(wordleArray: string[], answer: string, validWords: Words): [Words[], number, number] {
+	// input: array of 5-letter sequences, answer, validWords
+	// output: array of 5 arrays of words which match the sequence
+	let checks = 0;
+	let foundMatches = 0;
+	const allPaths: Words[] = [];
+	for (let i = 0; i < wordleArray.length-1; i++) {
+		const matches: Words = [];
+		const sequence = wordleArray[i];
+
+		for (let j = 0; j < validWords.length; j++) {
+			if (checks % 10000 === 0) {
+				console.log(`Checked ${checks} words, found ${foundMatches} matches`);
+			}
+			checks++;
+			if (wordMatchesSequence(validWords[j], sequence, answer)) {
+				foundMatches++;
+				matches.push(validWords[j]);
+			}
+		}
+		allPaths.push(matches);
+	}
+	allPaths.push([answer])
+	console.log(`Checked ${checks} words, found ${foundMatches} matches`);
+
+	return [allPaths, checks, foundMatches];
+}
+
+function wordMatchesSequence(word, sequence, answer) {
+	for (let i = 0; i < 5; i++) {
+		if (sequence[i] === "B") {
+			if (answer.includes(word[i])) {
+				return false;
+			}
+		}
+		if (sequence[i] === "G") {
+			if (answer[i] !== word[i]) {
+				return false;
+			}
+		}
+		if (sequence[i] === "Y") {
+			if (answer[i] === word[i]) {
+				return false;
+			}
+			if (!answer.includes(word[i])) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+function depthWordleSearch(
+	currentWord: string,
+	wordNodes: Words[],
+	wordleArray: string[],
+	standards: { yellowNeglect: boolean, yellowRepeats: boolean, blankRepeats: boolean, allowRepeats: boolean },
+	currentRow = 0,
+	blankLetters: string[] = [],
+	yellowLetters: Record<string, number[]> = {},
+	selectedWords: string[] = []
+) {
+	for (let i = 0; i < wordNodes[currentRow].length; i++) {
+		let nextWord: string = wordNodes[currentRow][i];
+
+		if (naturallyFollows(currentWord, nextWord, blankLetters, yellowLetters, standards)) {
+			let newBlankLetters: string[] = [...blankLetters]; // Copy the blankLetters array
+			let newYellowLetters: Record<string, number[]> = { ...yellowLetters }; // Copy the yellowLetters array
+			let newSelectedWords: string[] = [...selectedWords, nextWord]; // Add the nextWord to the selectedWords array
+
+			for (let i = 0; i < 5; i++) {
+				if (wordleArray[currentRow][i] === "B") {
+					newBlankLetters.push(nextWord[i]);
+				}
+				if (wordleArray[currentRow][i] === "Y") {
+					if (newYellowLetters[nextWord[i]]) {
+						newYellowLetters[nextWord[i]].push(i);
+					} else {
+						newYellowLetters[nextWord[i]] = [i];
+					}
+				}
+			}
+
+			if (currentRow === wordNodes.length - 2) {
+				return newSelectedWords;
+			} else {
+				let result = depthWordleSearch(
+					nextWord,
+					wordNodes,
+					wordleArray,
+					standards,
+					currentRow + 1,
+					newBlankLetters,
+					newYellowLetters,
+					newSelectedWords
+				);
+				if (result) {
+					return result;
+				}
+			}
+		}
+	}
+	// console.log("No solution found at" + currentWord + " " + currentRow + selectedWords + blankLetters + yellowLetters)
+	return false;
+}
+
+function naturallyFollows(currentWord, targetWord, blankLetters, yellowLetters, standards) {
+	if (currentWord === targetWord && !standards.allowRepeats) {
+		return false;
+	}
+
+	if (currentWord === "") {
+		return true;
+	}
+
+	for (let i = 0; i < 5; i++) {
+		if (blankLetters.includes(targetWord[i]) && !standards.blankRepeats) {
+			return false;
+		}
+	}
+
+	for (let i = 0; i < Object.keys(yellowLetters).length; i++) {
+		const yellowLetter = Object.keys(yellowLetters)[i];
+
+		// if we've seen a yellow square before, we expect to see it again
+		if (!standards.yellowNeglect) {
+			if (!targetWord.includes(yellowLetter)) {
+				return false; //First to remove for sure
+			}
+		}
+		// We expect users to place yellow letters in new squares
+		if (!standards.repeats) {
+			for (let j = 0; j < yellowLetters[yellowLetter].length; j++) {
+				const visitedPosition = yellowLetters[yellowLetter][j];
+				if (targetWord[visitedPosition] === yellowLetter) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
+
+
+
 globalJsonData = await fetchData();
 
-const textField = document.getElementById("wordle-input");
+const textField = document.getElementById("wordle-input") as HTMLTextAreaElement;
 textField.addEventListener("focus", function () {
   if (true) {
     textField.textContent = "";
@@ -21,7 +266,7 @@ textField.addEventListener("focus", function () {
 });
 
 function extraOptions() {
-  const extraFields = document.getElementById("extraFields");
+  const extraFields = document.getElementById("extraFields") as HTMLDivElement;
   extraFields.style.display =
     extraFields.style.display === "block" ? "none" : "block";
 }
@@ -30,14 +275,14 @@ const form = document.getElementById("wordle-form");
 if (form) {
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    const input = document.getElementById("wordle-input").value;
+    const input = document.getElementById("wordle-input");
     const startingWords = document.getElementById("startingWords")
-      ? document.getElementById("startingWords").value
+      ? (document.getElementById("startingWords") as HTMLTextAreaElement).value
       : "";
     const customAnswer = document.getElementById("customAnswer")
-      ? document.getElementById("customAnswer").value
+      ? (document.getElementById("customAnswer") as HTMLInputElement).value
       : "";
-    const results = document.getElementById("output");
+    const results = document.getElementById("output") as HTMLDivElement;
     while (results.firstChild) {
       results.removeChild(results.firstChild);
     }
@@ -169,7 +414,7 @@ function parseWordle(input, startingWords, customAnswer) {
     //split words by spaces, newlines, or commas. All words must be 5 letters long
     const words = startingWords
       .split(/[\s,]+/)
-      .filter((word) => word.length === 5);
+      .filter((word) => word.length === 5) as string[];
     for (let i = words.length - 1; i >= 0; i--) {
       console.log(words[i].toUpperCase());
       globalJsonData.words.unshift(words[i].toUpperCase());
@@ -183,13 +428,24 @@ function parseWordle(input, startingWords, customAnswer) {
     const noAnswer = document.createElement("div");
     noAnswer.textContent = "No answer found!";
     noAnswer.style.margin = "0 auto";
-    document.getElementById("resultsScreen").style.justifyContent = "center";
+    const resultsScreen = document.getElementById("resultsScreen");
+    if (!resultsScreen) {
+      return false;
+    }
+    resultsScreen.style.justifyContent = "center";
     const output = document.getElementById("output");
+    if (!output) {
+      return false;
+    }
     output.appendChild(noAnswer);
     output.style.textAlign = "center";
     return false;
   } else {
-    document.getElementById("resultsScreen").style.justifyContent =
+    const resultsScreen = document.getElementById("resultsScreen");
+    if (!resultsScreen) {
+      return false;
+    }
+    resultsScreen.style.justifyContent =
       "space-around";
   }
 
@@ -258,8 +514,8 @@ function createRow(solutions, startingIndex, colors, rowNumber) {
 }
 
 function changeRowContents(row, rowNumber, direction, solutions) {
-  const squares = row.querySelectorAll(".square");
-  const indexLabel = row.querySelector(".indexLabel");
+  const squares = row.querySelectorAll(".square") as NodeListOf<HTMLDivElement>;
+  const indexLabel = row.querySelector(".indexLabel") as HTMLDivElement;
   const letters = Array.from(squares).map((square) => square.textContent);
   const word = letters.join("");
   const currentIndex = solutions.indexOf(word);
@@ -295,6 +551,9 @@ function createGrid(solutions, indexes, colorText) {
   const numRows = Math.floor(colorText.length / 5);
   const colorsArray = colorText.match(/.{1,5}/g);
   const gridContainer = document.getElementById("grid-container");
+  if (!gridContainer) {
+    return;
+  }
   gridContainer.style.maxHeight = `${numRows * 66}px`;
   // Clear the existing grid
   while (gridContainer.firstChild) {
